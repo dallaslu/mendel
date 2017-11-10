@@ -251,6 +251,7 @@ void setup() {
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
   startAutoConfig(&wifiManager);
+  //  MDNS.begin("WebPool");
   // steper speed: 90 steps per min
   //  stepper.setSpeed(120);
 
