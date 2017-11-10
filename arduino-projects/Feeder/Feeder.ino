@@ -11,10 +11,10 @@
 #include <Stepper.h>
 
 #define STEPS 100 // steps per circle
-#define BUTTON 15
-//#define BUTTON D10
+//#define BUTTON 15
+#define BUTTON D10
 
-//Stepper stepper(STEPS, D4, D5, D6, D7); // IN1~IN4
+Stepper stepper(STEPS, D4, D5, D6, D7); // IN1~IN4
 //Stepper stepper(STEPS, 4, 5, 6, 7); // IN1~IN4
 
 //Ticker ticker;
@@ -22,8 +22,10 @@ WiFiManager wifiManager;
 String apName = ("mendel-feeder_" + String(ESP.getChipId(), HEX));
 const char *wifiName = apName.c_str();
 
-int hour; // hour of day
+int hour = -1; // hour of day
 int timeZone = +8;
+
+int feeding = 0;
 
 class FeedTask : public Task {
   private:
@@ -33,12 +35,16 @@ class FeedTask : public Task {
     int feederHoursSum = sizeof(feederHours) / sizeof(feederHours[0]);
   protected:
     void setup() {
+      while (hour < 0) {
+        delay(10000);
+      }
       for (int i = 0; i < feederHoursSum; i++) {
         if (hour <= feederHours[i]) {
           feederProcess = i;
           break;
         }
       }
+      Serial.println("*FEED ready.");
     }
     void loop() {
       Serial.print("*FEED cur: ");
@@ -49,11 +55,11 @@ class FeedTask : public Task {
       Serial.println(feederHours[feederProcess]);
       if (hour == feederHours[feederProcess]) {
         Serial.println("*FEED feeding");
-        doFeedPackage(feederPackage[feederProcess]);
         feederProcess ++;
         if (feederProcess >= feederHoursSum - 1) {
           feederProcess = 0;
         }
+        doFeedPackage(feederPackage[feederProcess]);
       }
       delay(10000);
     }
@@ -61,25 +67,29 @@ class FeedTask : public Task {
     void espStep(int step) {
       if (step > 0) {
         for (int i = 0; i < step; i++) {
-          //          stepper.step(1);
+          stepper.step(1);
           yield();
         }
       } else {
         for (int i = 0; i < -step; i++) {
-          //          stepper.step(-1);
+          stepper.step(-1);
           yield();
         }
       }
     }
   public:
     void doFeedPackage(int pkg) {
-      for (int i = 0; i < pkg; i++) {
-        espStep(-128); // left 1/16 loop
-        delay(100);
-        espStep(1152); //2048 steps to a circle in 4-step-mode // right 9/16 loop
-        delay(100);
-        espStep(-256); // left 2/16 loop
-        delay(10);
+      if (feeding == 0) {
+        feeding = 1;
+        for (int i = 0; i < pkg; i++) {
+          espStep(-128); // left 1/16 loop
+          delay(100);
+          espStep(1152); //2048 steps to a circle in 4-step-mode // right 9/16 loop
+          delay(100);
+          espStep(-128); // left 2/16 loop
+          delay(10);
+        }
+        feeding = 0;
       }
     }
 } feedTask;
@@ -211,9 +221,9 @@ class NtpTask : public Task {
       delay(10000);
     }
 } ntpTask;
-class ButtonTask : public Task {
+class ButtonTask : public FeedTask {
   private:
-    int buttonFoo = 0;;
+    int buttonFoo = 0;
   protected:
     void setup() {
       pinMode(BUTTON, INPUT);
@@ -223,16 +233,14 @@ class ButtonTask : public Task {
       int buttonState = digitalRead(BUTTON);
       if (buttonState == HIGH) {
         buttonFoo ++;
-        buttonFoo = buttonFoo > 100 ? 100 : buttonFoo;
       } else {
-        buttonFoo -= 10;
-        buttonFoo = buttonFoo < 0 ? 0 : buttonFoo;
+        buttonFoo = 0;
       }
       digitalWrite(BUTTON, LOW); // writing a HIGH to an INPUT pin
       if (buttonFoo == 100) {
         Serial.println("*BTN test");
+        doFeedPackage(2);
         buttonFoo = 0;
-        feedTask.doFeedPackage(2);
       }
       delay(10);
     }
@@ -253,7 +261,7 @@ void setup() {
   startAutoConfig(&wifiManager);
   //  MDNS.begin("WebPool");
   // steper speed: 90 steps per min
-  //  stepper.setSpeed(120);
+  stepper.setSpeed(120);
 
   Scheduler.start(&ntpTask);
   Scheduler.start(&feedTask);
