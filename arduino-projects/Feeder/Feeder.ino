@@ -57,6 +57,7 @@ class FeedTask : public Task {
       }
       delay(10000);
     }
+    /** yeild for WDT */
     void espStep(int step) {
       if (step > 0) {
         for (int i = 0; i < step; i++) {
@@ -87,7 +88,6 @@ class OtaTask : public Task {
     void setup() {
       // Port defaults to 8266
       ArduinoOTA.setPort(8266);
-      // Hostname defaults to esp8266-[ChipID]
       ArduinoOTA.setHostname(wifiName);
       //  ArduinoOTA.setPassword((const char *)"123");
       ArduinoOTA.onStart([]() {
@@ -246,6 +246,7 @@ void setup() {
   // start ticker with 0.5 because we start in AP mode and try to connect
   //  ticker.attach(0.6, tick);
 
+  WiFi.hostname(wifiName);
   //wifiManager.resetSettings();
   //set callback that gets called when connecting to previous WiFi fails, and enters Access Point mode
   wifiManager.setAPCallback(configModeCallback);
