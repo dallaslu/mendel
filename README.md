@@ -1,2 +1,2 @@
-# mendel
-for cat
+# Mendel
+A cat Feeder.
