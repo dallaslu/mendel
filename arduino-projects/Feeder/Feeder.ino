@@ -31,7 +31,7 @@ class FeedTask : public Task {
   private:
     int feederHours[4] = {0, 9, 15, 21};
     int feederProcess = 0;
-    int feederPackage[4] = {1, 3, 2, 3};
+    int feederPackage[4] = {1, 2, 2, 2};
     int feederHoursSum = sizeof(feederHours) / sizeof(feederHours[0]);
   protected:
     void setup() {
