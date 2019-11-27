@@ -1,5 +1,5 @@
 # Mendel
-A cat Feeder.
+A cat Feeder. It can feed cats regularly and quantitatively.
 
 ## Hardware
 
